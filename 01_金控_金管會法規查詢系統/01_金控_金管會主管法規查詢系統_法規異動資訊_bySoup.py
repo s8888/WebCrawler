@@ -115,8 +115,6 @@ def getPdfInsideWebsite(link, df, FinalPath):
                 
         print("爬取成功")
     except:
-        print("爬取內文失敗")
-        print("失敗連結：" + link)
         logging.error("爬取內文失敗")
         logging.error("失敗連結：" + link)
         traceback.print_exc()
@@ -172,7 +170,7 @@ def parsingDetail(df, FinalPath):
                         
                         tempMap = {"標題" : title, 
                                    "全文內容" : content, 
-                                   "附件" : " , ".join(str(e.text) for e in attachments)}
+                                   "附件" : ", ".join(str(e.text) for e in attachments)}
 
                         tempMap = getDetailFromContent(soup, content, tempMap, link)
                         
@@ -200,14 +198,11 @@ def parsingDetail(df, FinalPath):
                                         
                         print("爬取成功")
                     except:
-                        print("爬取內文失敗")
-                        print("失敗連結：" + link)
                         logging.error("爬取內文失敗")
                         logging.error("失敗連結：" + link)
                         traceback.print_exc()
                         
         except:
-            print("爬取內文失敗")
             logging.error("爬取內文失敗")
             traceback.print_exc()
         print("\n")
@@ -247,14 +242,15 @@ def parsingTitle(soup, checkRange):
 
         totalPages = int(soup.select(".pageinfo")[0].text.split("\r\n")[4].strip()) # 總頁數
         pageCounts = int(len(soup.select("td")) / 4) # 每頁筆數
-        nowPage = 1 
+        nowPage = 1
         ending = False # 是否結束主旨爬網
         
 
         while True:
-            for i in range(pageCounts):
+            for idx in range(pageCounts):
                 try:
-                    date = soup.select("td")[i * 4 + 1].text.strip()
+                    nowPage += 1
+                    date = soup.select("td")[idx * 4 + 1].text.strip()
                     dateDT = date.split(".")
                     dateDT = datetime.date(int(dateDT[0]) + 1911, int(dateDT[1]), int(dateDT[2])) # 轉換成西元年
                     
@@ -262,22 +258,23 @@ def parsingTitle(soup, checkRange):
                     if strDate > dateDT:
                         ending = True
                         break
+                    elif dateDT > endDate:
+                        continue
                     
                     # 去除前段文字才會與第二層 title 相符
-                    title = soup.select("td a")[i].text.strip()
+                    title = soup.select("td a")[idx].text.strip()
                     if ("金融監督管理委員會令：" in title) | ("金融監督管理委員會公告：" in title):
                         title = title.split("：")[1]
 
                     dates.append(date)
                     titles.append(title)
-                    link = soup.select("td a")[i].get("href")
+                    link = soup.select("td a")[idx].get("href")
                     if link.find("http") == -1:
                         link = url + "/" + link
                     links.append(link)   
 
                 except:
-                    print("爬取第 %s 頁第 %s 筆主旨發生錯誤" %(nowPage, i + 1))
-                    logging.error("爬取第 %s 頁第 %s 筆主旨發生錯誤" %(nowPage, i + 1))
+                    logging.error("爬取第 %s 頁第 %s 筆主旨發生錯誤" %(nowPage, idx + 1))
                     traceback.print_exc()
 
             # 若結束爬取主旨, 停止爬取剩下的 pages
@@ -306,13 +303,11 @@ def parsingTitle(soup, checkRange):
                         break
                         
         if len(df) == 0:
-            print("%s 至 %s 間無資料更新" %(strDate, endDate))
             logging.critical("%s 至 %s 間無資料更新" %(strDate, endDate))
             return pd.DataFrame(columns = ["爬文日期", "發文日期", "標題", "網頁連結"])
         
         return df
     except:
-        print("爬取主旨列表失敗")
         logging.error("爬取主旨列表失敗")
         traceback.print_exc()
         return pd.DataFrame(columns = ["爬文日期", "發文日期", "標題", "網頁連結"])
@@ -351,7 +346,6 @@ def main(url, checkRange = 7):
             df_2 = parsingDetail(df_1, FinalPath)
             outputCsv(df_2, "第二層結果", FinalPath)
     except:
-        print("執行爬網作業失敗")
         logging.error("執行爬網作業失敗")
         traceback.print_exc()
 
