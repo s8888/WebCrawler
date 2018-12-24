@@ -12,7 +12,7 @@ Description : 針對法源法律網-法律新訊，每日取得法規異動資�
 Author      : 林竣昇
 Update Date : 2018/12/21
 '''
-# In[2]:
+# In[3]:
 
 
 import header
@@ -31,7 +31,7 @@ import os
 import requests
 
 
-# In[3]:
+# In[4]:
 
 
 TempPath = "./Temp/"  # browser file
@@ -40,7 +40,7 @@ lastResultPath = "./CrawlList/"
 lastResultName = "lastResult"
 
 
-# In[4]:
+# In[5]:
 
 
 def getDetailFromContent(soup, tempMap, tabNumber, subColName):
@@ -62,10 +62,8 @@ def getDetailFromContent(soup, tempMap, tabNumber, subColName):
         date = soup.select("#ctl00_cphMain_lblndate")[0].text.strip()
 
         # 相關法條
-        try:
-            relatedLaws = soup.select("td")[0].text.split("\n")
-        except:
-            relatedLaws = []
+        relatedLaws = soup.select("#ctl00_cphMain_relaData a")
+        relatedLaw = ", ".join(e.text.strip() for e in relatedLaws)
             
     else:
         
@@ -94,13 +92,13 @@ def getDetailFromContent(soup, tempMap, tabNumber, subColName):
             strPos += 5
             endPos = strPos + temp[strPos:].find("：") - 4
             relatedLaws = temp[strPos:endPos].split("\n")
+            relatedLaw = ", ".join(e.strip() for e in relatedLaws)[:-2]
         else:
-            try:
-                relatedLaws = soup.select("td")[0].text.split("\n")
-            except:
-                relatedLaws = []
+            relatedLaws = soup.select("#ctl00_cphMain_relaData a")
+            relatedLaw = ", ".join(e.text.strip() for e in relatedLaws)
+            
+                
     
-    relatedLaw = ", ".join(e.strip() for e in relatedLaws)
         
     tempMap["發文字號"] = serialNumber
     tempMap["發文日期"] = date
@@ -109,7 +107,7 @@ def getDetailFromContent(soup, tempMap, tabNumber, subColName):
     return tempMap
 
 
-# In[5]:
+# In[6]:
 
 
 def request2soup(url):
@@ -119,7 +117,7 @@ def request2soup(url):
     return soup
 
 
-# In[6]:
+# In[7]:
 
 
 def parsingDetail(df, FinalPath, tabNumber):
@@ -143,6 +141,7 @@ def parsingDetail(df, FinalPath, tabNumber):
 
             # 全文內容
             content = soup.select("#pageNews")[0].text.strip()
+            content = content.split("第 一 章")[0].strip() # for 2018-11-26 電信管理法之例外處理
             
             tempMap = {"標題" : title, 
                        "全文內容" : content,
@@ -154,8 +153,6 @@ def parsingDetail(df, FinalPath, tabNumber):
 
             print("爬取成功")
         except:
-            print("爬取內文失敗")
-            print("失敗連結：" + link)
             logging.error("爬取內文失敗")
             logging.error("失敗連結：" + link)
             traceback.print_exc()
@@ -164,7 +161,7 @@ def parsingDetail(df, FinalPath, tabNumber):
     return df_detail
 
 
-# In[7]:
+# In[8]:
 
 
 def outputCsv(df, fileName, path):
@@ -174,7 +171,7 @@ def outputCsv(df, fileName, path):
     df.to_csv(path + fileName + ".csv", index = False, encoding = "utf_8_sig")
 
 
-# In[8]:
+# In[9]:
 
 
 def parsingTitle(driver, checkRange):
@@ -190,6 +187,7 @@ def parsingTitle(driver, checkRange):
         strDate = (endDate - datetime.timedelta(days = checkRange)).isoformat()
         
         ending = False
+        nowPage = 1
         df = pd.DataFrame(columns = ["爬文日期", "發文日期", "標題", "網頁連結"])
 
         # actions
@@ -204,17 +202,17 @@ def parsingTitle(driver, checkRange):
                 links = driver.find_elements_by_css_selector(".tdSubject a")
                 links = [x.get_attribute("href") for x in links]
 
-                idx = pd.Series([False] * len(dates))
-                for i in range(len(dates)):
-                    date = dates[i]
+                show = pd.Series([False] * len(dates))
+                for idx in range(len(dates)):
+                    date = dates[idx]
                     if date < strDate: # 若發文日期小於開始日期, 則結束爬取主旨
                         ending = True
                         break
-                    idx[i] = True
+                    show[idx] = True
                     
                 nowDates = [str(endDate.year) + "/" + str(endDate.month) + "/" + str(endDate.day)] * len(dates)
                 d = {"爬文日期" : nowDates, "發文日期" : dates, "標題" : titles, "網頁連結" : links}
-                df = df.append(pd.DataFrame(data = d)[idx])  # append page
+                df = df.append(pd.DataFrame(data = d)[show])  # append page
 
                 # 若結束爬取主旨, 停止爬取剩下的 page
                 if ending:
@@ -225,12 +223,11 @@ def parsingTitle(driver, checkRange):
                 if goNext.get_attribute("href") == None: # 最後一頁不執行點擊下一頁
                     break
                 goNext.click() # 下一頁
+                nowPage += 1
             except:
-                print("爬取第 %s 頁主旨發生錯誤" %str(i + 1))
-                logging.error("爬取第 %s 頁主旨發生錯誤" %str(i + 1))
+                logging.error("爬取第 %s 頁主旨發生錯誤" %str(nowPage + 1))
                 traceback.print_exc()
-
-        df.index = [i for i in range(df.shape[0])] # reset Index 
+                
         outputCsv(df, lastResultName, lastResultPath)
 
         if not lastResult.empty:
@@ -242,7 +239,6 @@ def parsingTitle(driver, checkRange):
                         break
 
         if len(df) == 0:
-            print("%s 至 %s 間無資料更新" %(strDate, endDate))
             logging.critical("%s 至 %s 間無資料更新" %(strDate, endDate))
         else:
             df.index = [i for i in range(df.shape[0])] # reset 
@@ -250,14 +246,13 @@ def parsingTitle(driver, checkRange):
         return df
     
     except:
-        print("爬取主旨列表失敗")
         logging.error("爬取主旨列表失敗")
         traceback.print_exc()
         return pd.DataFrame(columns = ["爬文日期", "發文日期", "標題", "網頁連結"])
   
 
 
-# In[11]:
+# In[10]:
 
 
 def main(url, tabNumber, checkRange = 7):
@@ -289,7 +284,6 @@ def main(url, tabNumber, checkRange = 7):
             df_2 = parsingDetail(df_1, tabNumber, FinalPath)
             outputCsv(df_2, "第二層結果", FinalPath)
     except:
-        print("執行爬網作業失敗")
         logging.error("執行爬網作業失敗")
         traceback.print_exc()
 
@@ -300,12 +294,12 @@ def main(url, tabNumber, checkRange = 7):
     logging.critical("爬網結束......\n")
 
 
-# In[15]:
+# In[11]:
 
 
 if __name__ == "__main__":
     url = "http://www.lawbank.com.tw/news/NewsSearch.aspx?TY="
-    main(url, 22)
+    main(url, 19, 30)
 
 
 # In[ ]:
