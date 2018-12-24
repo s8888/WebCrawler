@@ -94,7 +94,7 @@ def parsingDetail(df, FinalPath):
             
             tempMap = {"標題" : title, 
                        "全文內容" : content, 
-                       "附件" : " , ".join(str(e.get("title")).replace("(開啟新視窗)", "") for e in attachments)}
+                       "附件" : ", ".join(str(e.get("title")).replace("(開啟新視窗)", "") for e in attachments)}
             
             tempMap = getDetailFromContent(soup, content, tempMap)
             
@@ -137,8 +137,6 @@ def parsingDetail(df, FinalPath):
 
             print("爬取成功")
         except:
-            print("爬取內文失敗")
-            print("失敗連結：" + link)
             logging.error("爬取內文失敗")
             logging.error("失敗連結：" + link)
             traceback.print_exc()
@@ -177,9 +175,9 @@ def parsingTitle(soup, checkRange):
         
         df = pd.DataFrame(columns = ["編號", "爬文日期", "發文日期", "來源機關", "標題", "網頁連結"])
 
-        for i in range(int(totalPage)):
-            if (i != 0):
-                soup = request2soup(url, i + 1)
+        for page in range(int(totalPage)):
+            if (page != 0):
+                soup = request2soup(url, page + 1)
 
             try:
                 sorts = soup.select(".sort1")
@@ -199,24 +197,25 @@ def parsingTitle(soup, checkRange):
                 
                 nowDates = [str(endDate.year) + "/" + str(endDate.month) + "/" + str(endDate.day)] * len(dates)
 
-                idx = pd.Series([False] * len(dates))
-                for j in range(len(dates)):
-                    date = dates[j]
+                show = pd.Series([False] * len(dates))
+                for idx in range(len(dates)):
+                    date = dates[idx]
                     if date < strDate: # 若發文日期小於開始日期, 則結束爬取主旨
                         ending = True
                         break
-                    idx[j] = True
+                    elif date > endDate:
+                        continue
+                    show[idx] = True
                 
                 d = {"編號" : sorts, "爬文日期" : nowDates, "發文日期" : dates, 
                      "來源機關" : sources, "標題" : titles, "網頁連結" : links}
-                df = df.append(pd.DataFrame(data = d)[idx])  # append page
+                df = df.append(pd.DataFrame(data = d)[show])  # append page
 
                 # 若結束爬取主旨, 停止爬取剩下的 pages
                 if ending:
                     break
             except:
-                print("爬取第 %s 頁主旨發生錯誤" %str(i + 1))
-                logging.error("爬取第 %s 頁主旨發生錯誤" %str(i + 1))
+                logging.error("爬取第 %s 頁主旨發生錯誤" %str(page + 1))
                 traceback.print_exc()
 
         df.index = [i for i in range(df.shape[0])] # reset Index 
@@ -231,7 +230,6 @@ def parsingTitle(soup, checkRange):
                         break
 
         if len(df) == 0:
-            print("%s 至 %s 間無資料更新" %(strDate, endDate))
             logging.critical("%s 至 %s 間無資料更新" %(strDate, endDate))
         else:
             df.index = [i for i in range(df.shape[0])] # reset 
@@ -239,7 +237,6 @@ def parsingTitle(soup, checkRange):
         return df
     
     except:
-        print("爬取主旨列表失敗")
         logging.error("爬取主旨列表失敗")
         traceback.print_exc()
         return pd.DataFrame(columns = ["編號", "爬文日期", "發文日期", "來源機關", "標題", "網頁連結"])
@@ -289,7 +286,6 @@ def main(url, checkRange = 7):
             df_2 = parsingDetail(df_1, FinalPath)
             outputCsv(df_2, "第二層結果", FinalPath)
     except:
-        print("執行爬網作業失敗")
         logging.error("執行爬網作業失敗")
         traceback.print_exc()
     
