@@ -8,7 +8,7 @@ author      : 林德昌
 date        : 2018/10/16
 description : 抓取法務部每天發布的最新消息
 '''
-# In[12]:
+# In[81]:
 
 
 import requests
@@ -20,12 +20,13 @@ import re
 import datetime
 import traceback # 印log
 import os
+import ssl
 TempPath = "./Temp"  # browser file
 FinalPath = "./Result" # project file
 lastResultPath = "./CrawlList/lastResult.csv"
 
 
-# In[13]:
+# In[82]:
 
 
 def downloadFile(finalPath, title, fileUrls, fileNames): # for download pdf or doc
@@ -48,34 +49,61 @@ def downloadFile(finalPath, title, fileUrls, fileNames): # for download pdf or d
             logging.error('title:' + title)
 
 
-# In[14]:
+# In[83]:
 
 
 def dataProcess_Detail(soup, row):
     urlmoj = 'https://law.moj.gov.tw' # linkto 全國法規資料庫
     urlGazette = 'http://gazette.nat.gov.tw' # linkto 行政院公報資訊網
     fileUrlRoot_moj = 'https://law.moj.gov.tw/news/'
+    urlNTPC = 'http://web.law.ntpc.gov.tw' # linkto 新北市政府網站
     title = row['標題']
     link = row['內文連結']
     result = dict()
     if link.find(urlmoj) >= 0:
-        result['content'] = [e.text for e in soup.select('pre')][0]
-        result['fileNames'] = [e.text for e in soup.select('#Content a')][3:]
-        result['fileUrls'] = [fileUrlRoot_moj + e.get('href') for e in soup.select('#Content a')][3:]
-        result['serno'] = ''
-        result['issue_date'] = [e.text for e in soup.select('#lbDate')][0]
+        rawcontent = [e.text for e in soup.select('.text-pre')]
+        content = rawcontent[0] if bool(rawcontent) else ''
+        fileNames = [e.text for e in soup.select('#litFile a')]
+        fileUrls = [urlmoj + '/' + e.get('href') for e in soup.select('#Content a')]
+        serno = ''
+        issue_date = [e.text for e in soup.select('td')][0]
     elif link.find(urlGazette) >= 0:
-        result['fileUrls'] = [urlGazette + e.get('src') for e in soup.select('.embed-responsive-item')]
-        result['fileNames'] = [title + '.pdf'for i in range(len(result['fileUrls']))]
-        result['content'] = ''
-        result['serno'] = soup.select('div.Item section.Block p span')[2].text
-        result['issue_date'] = soup.select('div.Item section.Block p span')[1].text
+        fileUrls = [urlGazette + e.get('src') for e in soup.select('.embed-responsive-item')]
+        fileNames = [title + '.pdf'for i in range(len(fileUrls))]
+        content = ''
+        serno = soup.select('div.Item section.Block p span')[2].text
+        issue_date = soup.select('div.Item section.Block p span')[1].text
+    elif link.find('NewsContent.aspx') >= 0: # 其他地方政府網站內文
+        NotFoundmsg = [e.text for e in soup.select('.text-danger')]  
+        if NotFoundmsg != []:  # 若查詢結果為錯誤訊息，則回傳空的dict
+            return result
+        pattern = re.compile(r'http(\:|\w|\.|\-|\/)+\/')
+        m = pattern.match(link)
+        content = [e.text.strip() for e in soup.select('.ClearCss')]
+        content = '' if not bool(content) else content[0]
+        fileUrls = [m.group(0) + e.get('href') for e in soup.select('#ctl00_cp_content_ulAnnFiles02 a')]
+        fileNames = [e.text for e in soup.select('#ctl00_cp_content_ulAnnFiles02 a')]
+        serno = [e.text.strip() for e in soup.select('#ctl00_cp_content_trODWord td')][0]
+        issue_date = [e.text.strip() for e in soup.select('#ctl00_cp_content_trAnnDate td')]
+    elif link.find(urlNTPC) >= 0:  
+        fileUrls = [e.get('href').replace('./', 'http://web.law.ntpc.gov.tw/fn/') for e in soup.select('#Law-Content a')][1:]
+        fileNames = [e.text for e in soup.select('#Law-Content a')][1:]
+        content = ''
+        serno = ''
+        issue_date = [e.text.strip() for e in soup.select('td b')][0]
+        if fileNames == []:
+            contents = [e.text for e in soup.select('.worddisaplay')][0]
     else:
-        log.info('出現新的連結網站，需要新增爬蟲程式')
+        logging.info('出現新的連結網站，需要新增爬蟲程式')
+    result['fileUrls'] = fileUrls
+    result['fileNames'] = fileNames 
+    result['content'] = content
+    result['serno'] = serno
+    result['issue_date'] = issue_date
     return result
 
 
-# In[15]:
+# In[84]:
 
 
 def parsingDetail(df, finalPath): 
@@ -85,16 +113,14 @@ def parsingDetail(df, finalPath):
             title = row['標題']
             link = row['內文連結']
             logging.info(title)
-
-                soup = request2soup(link)
-                result = dataProcess_Detail(soup, row)
-
+            soup = request2soup(link)
+            result = dataProcess_Detail(soup, row)
             fileNames = result['fileNames'] 
             if len(fileNames) != 0:
                 downloadFile(finalPath, title, result['fileUrls'], fileNames)
             d = {'標題': title, '全文內容': result['content'], '附件':','.join(fileNames), '發文字號':result['serno'], 
                  '發文日期':result['issue_date'], '相關法條':''}
-            df2= df2.append(pd.DataFrame(data=d, index=[0]))
+            df2= df2.append(d, ignore_index=True)
         except:
             logging.error("爬取內文失敗\n")
             logging.error("失敗連結：" + link+ '\n')
@@ -102,7 +128,7 @@ def parsingDetail(df, finalPath):
     return df2
 
 
-# In[16]:
+# In[85]:
 
 
 def outputCsv(df, fileName, path):
@@ -112,14 +138,16 @@ def outputCsv(df, fileName, path):
     df.to_csv(path + "/" + fileName + ".csv", index = False, encoding = "utf_8_sig")
 
 
-# In[17]:
+# In[86]:
 
 
 def compareTo(strDate, endDate):
-    if int(re.split(r'(/|-|\.)', strDate)[0]) < 1911:
-        strDate = datetime.datetime.strptime(str(int(re.sub(r'(/|-|\.)', '', strDate)) + 19110000), "%Y%m%d").strftime("%Y-%m-%d")
-    if int(re.split(r'(/|-|\.)', endDate)[0]) < 1911:
-        endDate = datetime.datetime.strptime(str(int(re.sub(r'(/|-|\.)', '', endDate)) + 19110000), "%Y%m%d").strftime("%Y-%m-%d")
+    strDate = re.sub(r'(/|-|\.)', '-', strDate)
+    endDate = re.sub(r'(/|-|\.)', '-', endDate)
+    if int(re.split('-', strDate)[0]) < 1911:
+        strDate = datetime.datetime.strptime(str(int(re.sub('-', '', strDate)) + 19110000), "%Y%m%d").strftime("%Y-%m-%d")
+    if int(re.split('-', endDate)[0]) < 1911:
+        endDate = datetime.datetime.strptime(str(int(re.sub('-', '', endDate)) + 19110000), "%Y%m%d").strftime("%Y-%m-%d")
     try:
         strDate = datetime.datetime.strptime(strDate, "%Y-%m-%d")
         endDate = datetime.datetime.strptime(endDate, "%Y-%m-%d")
@@ -127,6 +155,7 @@ def compareTo(strDate, endDate):
     except:
         logging.error('compareTo(strDate, endDate):')
         logging.error("日期格式錯誤：strDate = %s, endDate = %s" %(strDate, endDate))
+        traceback.print_exc()
         return
     if strDate < endDate:
         return 1
@@ -136,7 +165,7 @@ def compareTo(strDate, endDate):
         return -1
 
 
-# In[18]:
+# In[87]:
 
 
 def dataProcess_Title(soup, strDate):
@@ -148,13 +177,16 @@ def dataProcess_Title(soup, strDate):
     end = False
     while True:
         try:
+            if nowPage == 2: # TODO
+                break
             if nowPage > 1:
                 url = 'https://www.moj.gov.tw/lp-22-001-' + str(nowPage) +'-20.html'
                 soup = request2soup(url)
             titles = [str(e.get('title')) for e in soup.select('.list a')]
             if titles == []:
                 break
-            for index in range(len(titles)):
+#             for index in range(len(titles)):
+            for index in range(15): #TODO
                 try:
                     title = titles[index]
                     date = soup.select('td[data-title="張貼日"]')[index].text.strip()
@@ -182,7 +214,7 @@ def dataProcess_Title(soup, strDate):
     return result
 
 
-# In[19]:
+# In[88]:
 
 
 def parsingTitle(soup, checkRange):
@@ -222,7 +254,7 @@ def parsingTitle(soup, checkRange):
     return df
 
 
-# In[20]:
+# In[89]:
 
 
 def request2soup(url):
@@ -232,10 +264,10 @@ def request2soup(url):
     return soup
 
 
-# In[21]:
+# In[90]:
 
 
-def main(url, checkRange = 10):
+def main(url, checkRange = 5):
     
     logging.critical("\n")
     logging.critical("爬網開始......")
@@ -264,10 +296,17 @@ def main(url, checkRange = 10):
     logging.critical("爬網結束......")
 
 
-# In[22]:
+# In[91]:
 
 
 if __name__ == "__main__":
     url = 'https://www.moj.gov.tw/lp-22-001-1-20.html'
     main(url)
+
+
+# In[79]:
+
+
+url = 'http://web.law.ntpc.gov.tw/fn/ShowNews.asp?id=5261'
+soup = request2soup(url)
 
