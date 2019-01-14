@@ -8,7 +8,7 @@ author      : 林德昌
 date        : 2018/10/16
 description : 抓取金管會銀行局每天發布的最新法令函釋
 '''
-# In[52]:
+# In[34]:
 
 
 import requests
@@ -25,7 +25,7 @@ FinalPath = "./Result" # project file
 lastResultPath = "./CrawlList/lastResult.csv"
 
 
-# In[53]:
+# In[35]:
 
 
 def downloadFile(finalPath, title, fileUrls, fileNames): # for download pdf or doc
@@ -47,7 +47,7 @@ def downloadFile(finalPath, title, fileUrls, fileNames): # for download pdf or d
             traceback.print_exc()
 
 
-# In[54]:
+# In[36]:
 
 
 def dataProcess_Detail(soup, fileUrlRoot):
@@ -62,7 +62,7 @@ def dataProcess_Detail(soup, fileUrlRoot):
     return result
 
 
-# In[55]:
+# In[37]:
 
 
 def parsingDetail(df, finalPath): 
@@ -74,7 +74,7 @@ def parsingDetail(df, finalPath):
             logging.info(title)
             link = row['內文連結']
             if link.find('uploaddowndoc') >= 0:
-                downloadFile(finalPath, title, [link], re.findall('\w+.pdf','10702749550函.pdf(開啟新視窗)'))
+                downloadFile(finalPath, title, [link], re.findall('\w+.pdf',title))
                 continue
 
             soup = request2soup(link)
@@ -93,7 +93,7 @@ def parsingDetail(df, finalPath):
     return df2
 
 
-# In[56]:
+# In[38]:
 
 
 def outputCsv(df, fileName, path):
@@ -103,7 +103,7 @@ def outputCsv(df, fileName, path):
     df.to_csv(path + "/" + fileName + ".csv", index = False, encoding = "utf_8_sig")
 
 
-# In[57]:
+# In[39]:
 
 
 def compareTo(strDate, endDate):
@@ -130,7 +130,7 @@ def compareTo(strDate, endDate):
         return -1
 
 
-# In[58]:
+# In[40]:
 
 
 def dataProcess_Title(soup, strDate):
@@ -182,7 +182,7 @@ def dataProcess_Title(soup, strDate):
         
 
 
-# In[59]:
+# In[41]:
 
 
 def parsingTitle(soup, checkRange):
@@ -222,7 +222,7 @@ def parsingTitle(soup, checkRange):
     
 
 
-# In[60]:
+# In[42]:
 
 
 def request2soup(url, page = None):
@@ -242,7 +242,7 @@ def request2soup(url, page = None):
     return soup
 
 
-# In[61]:
+# In[43]:
 
 
 def main(url, checkRange = 30):
@@ -273,7 +273,7 @@ def main(url, checkRange = 30):
     logging.critical("爬網結束......")
 
 
-# In[62]:
+# In[44]:
 
 
 if __name__ == "__main__":
