@@ -8,7 +8,7 @@ author      : 林德昌
 date        : 2019/01/14
 description : 抓取每天發布的最新訊息
 '''
-# In[25]:
+# In[49]:
 
 
 import requests
@@ -25,7 +25,7 @@ FinalPath = "./Result" # project file
 lastResultPath = "./CrawlList/lastResult.csv"
 
 
-# In[26]:
+# In[50]:
 
 
 def downloadFile(finalPath, title, fileUrls, fileNames): # for download pdf or doc
@@ -47,7 +47,7 @@ def downloadFile(finalPath, title, fileUrls, fileNames): # for download pdf or d
             traceback.print_exc()
 
 
-# In[27]:
+# In[51]:
 
 
 def dataProcess_Detail(soup, title_type):
@@ -64,7 +64,7 @@ def dataProcess_Detail(soup, title_type):
         issue_date = re.findall(r'發文日期.+?\d+.+', str_content)[0][5:-1]
     else:
         content = re.sub('\s','', str_content)
-        serno = re.findall('日\S+?號[令|函]', content)[0][1:]
+        serno = re.findall('日\S+?號[令|函|公告]', content)[0][1:]
         issue_date = re.findall('民國.+?日', str_content)[0]
         
     result['fileNames'] = [e.text for e in soup.select('font font a')]
@@ -76,7 +76,7 @@ def dataProcess_Detail(soup, title_type):
     return result
 
 
-# In[28]:
+# In[52]:
 
 
 def parsingDetail(df, finalPath): 
@@ -103,7 +103,7 @@ def parsingDetail(df, finalPath):
     return df2
 
 
-# In[29]:
+# In[53]:
 
 
 def outputCsv(df, fileName, path):
@@ -113,7 +113,7 @@ def outputCsv(df, fileName, path):
     df.to_csv(path + "/" + fileName + ".csv", index = False, encoding = "utf_8_sig")
 
 
-# In[30]:
+# In[54]:
 
 
 def _add1911(matched):
@@ -124,7 +124,7 @@ def _add1911(matched):
     return addedValueStr;
 
 
-# In[31]:
+# In[55]:
 
 
 def compareTo(strDate, endDate):
@@ -151,7 +151,7 @@ def compareTo(strDate, endDate):
         return -1
 
 
-# In[32]:
+# In[56]:
 
 
 def dataProcess_Title(strDate):
@@ -207,7 +207,7 @@ def dataProcess_Title(strDate):
         
 
 
-# In[33]:
+# In[57]:
 
 
 def parsingTitle(checkRange):
@@ -247,7 +247,7 @@ def parsingTitle(checkRange):
     
 
 
-# In[34]:
+# In[58]:
 
 
 def request2soup(url):
@@ -257,7 +257,7 @@ def request2soup(url):
     return soup
 
 
-# In[35]:
+# In[59]:
 
 
 def main(url, checkRange = 60):
@@ -287,7 +287,7 @@ def main(url, checkRange = 60):
     logging.critical("爬網結束......")
 
 
-# In[36]:
+# In[60]:
 
 
 if __name__ == "__main__":
