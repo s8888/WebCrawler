@@ -58,6 +58,7 @@ def outputCsv(df, fileName, path= FINAL_PATH, encoding = "utf_8_sig", index = Fa
 def clearFolder(crawlList = False):
     removeFile(TEMP_PATH)
     removeFile(FINAL_PATH)
+    removeFile(LOG_PATH)
     if crawlList:
         removeFile(CRAWL_LIST_PATH)
         
