@@ -15,6 +15,7 @@ IS_LOCAL = _tail == 'ipykernel_launcher.py' # ipynb vs py
 PATH = "" if IS_LOCAL else os.path.dirname(_path) +"/"  
 PROJECT = "" if IS_LOCAL else os.path.splitext(os.path.basename(sys.argv[0]))[0]
 TIMELABEL = sys.argv[1] if ( not IS_LOCAL and len(sys.argv)>1) else _strTime.strftime("%Y%m%d%H%M%S") 
+PROJECT_TIMELABEL = PROJECT+'_'+TIMELABEL
 LOG_PATH = PATH +"./Log"
 TEMP_PATH = PATH +"./Temp"  # browser file
 FINAL_PATH = PATH +"./Result" #  project file
@@ -25,7 +26,7 @@ RESULT_COUNT = 0
 
 # log setting
 logging.basicConfig(level=logging.DEBUG, #DEBUG, INFO, WARNING, ERROR, CRITICAL
-                    filename= LOG_PATH + '/log.txt',
+                    filename= LOG_PATH + '/'+PROJECT_TIMELABEL+ '_log.txt',
                     filemode='w',
                     format='%(asctime)s - %(levelname)8s - %(name)s[line:%(lineno)d] : %(message)s')
 
@@ -73,7 +74,7 @@ def removeFile(filePath):
 #------------------ customize -------------------------------------------            
             
 # zipfile 
-def zipFile(fileName = PROJECT+'_'+TIMELABEL, targetPath = FINAL_PATH , zipFolder = FINAL_PATH):
+def zipFile(fileName = PROJECT_TIMELABEL, targetPath = FINAL_PATH , zipFolder = FINAL_PATH):
     logging.debug('zip fileName:'+fileName)
     logging.debug('zip targetPath:'+targetPath)
     logging.debug('zip zipFolder:'+zipFolder)
@@ -83,13 +84,13 @@ def zipFile(fileName = PROJECT+'_'+TIMELABEL, targetPath = FINAL_PATH , zipFolde
 
 # ok file for process execute successfully    
 def createOKFile():    
-    filename = os.path.join(FINAL_PATH, PROJECT+'_'+TIMELABEL+'.ok')    
+    filename = os.path.join(FINAL_PATH, PROJECT_TIMELABEL+'.ok')    
     logging.debug('createOKFile:'+filename)
     open(filename,'a')    
 
 # ok file for process execute successfully    
 def createInfoFile():    
-    filename = os.path.join(FINAL_PATH, PROJECT+'_'+TIMELABEL+'_info.txt')
+    filename = os.path.join(FINAL_PATH, PROJECT_TIMELABEL+'_info.txt')
     logging.debug('createInfoFile:'+filename)
     file = open(filename,'w')    
     
@@ -98,7 +99,7 @@ def createInfoFile():
     # PROJECT,START_TIME,END_TIME,(SUCCESS/FAIL),(NUM/0),ZIP_FILE,FILE_PATH
     content = PROJECT+','+ TIMELABEL +','+datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     content += ',' + result + ',' + str(RESULT_COUNT) 
-    content += ',,' if result == 'FAIL' else ',' + PROJECT+'_'+TIMELABEL + '.zip,'
+    content += ',,' if result == 'FAIL' else ',' + PROJECT_TIMELABEL + '.zip,'
     logging.debug('file content:'+content)
     file.write(content)
     file.close()
