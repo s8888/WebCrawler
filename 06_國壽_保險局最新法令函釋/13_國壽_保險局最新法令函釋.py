@@ -9,7 +9,7 @@ Description : 保險局最新法令函釋
 Author      : 謝子嫣
 Update Date : 2019.01.22
 '''
-# In[1]:
+# In[42]:
 
 
 import header
@@ -25,7 +25,7 @@ import requests
 import re
 
 
-# In[2]:
+# In[43]:
 
 
 def getResult(findall, STR_NUM):
@@ -36,13 +36,13 @@ def getResult(findall, STR_NUM):
     return result
 
 
-# In[36]:
+# In[56]:
 
 
 def parsingDetail(df):
 
     df_detail = pd.DataFrame(columns = ["ISS_DATE", "TITL", "ISS_CTNT", "ISS_NO", "RLT_RGL", "FILES",
-                                        "FOLDER_NM", "FILES_NM"])
+                                        "FOLDER_NM", "FILES_NM"])#[2019.01.24]新增欄位(截斷後的資料夾名稱及檔名
 
     for link in df.LNK_URL:
         try:
@@ -72,7 +72,8 @@ def parsingDetail(df):
                 # 若目錄不存在, 建立目錄
                 if not os.path.isdir(target):
                     os.mkdir(target)
-                    
+                
+                lastFileName = "" #上一次檔名(因截短後當名相同)    
                 for attach in attachments:
                     fileLink = "https://www.ib.gov.tw" + attach.get("href")
                     # 下載附件
@@ -82,7 +83,10 @@ def parsingDetail(df):
                     extName = fileName[endLoc:]  # 副檔名
                     fileName = fileName[:endLoc] # 檔名
                     fileName = fileName[:30]     # 截短檔名
+                    if fileName == lastFileName:
+                        fileName = fileName[:30] + str((indext+1))
                     tmpFILES_NM.append(fileName + extName) #截短後檔名+副檔名
+                    lastFileName = fileName
                 
                     with open(target + "/" + fileName + extName, "wb") as file:
                         for data in response.iter_content():
@@ -90,7 +94,7 @@ def parsingDetail(df):
                             
             df_detail = df_detail.append({"ISS_DATE" : result02, 
                                           "TITL" : title.text.strip(), 
-                                          "ISS_CTNT" : content.text.replace("\n","\\n"),#[2019.01.23]為了匯出CSV有特殊字元能判斷換行
+                                          "ISS_CTNT" : content.text.strip().replace("\n","\\n"),#[2019.01.23]為了匯出CSV有特殊字元能判斷換行
                                           "ISS_NO" : result01,
                                           "RLT_RGL" : result03,
                                           "FILES" : ",".join(str(e.get("title")).replace("(開啟新視窗)", "") 
@@ -107,7 +111,7 @@ def parsingDetail(df):
     return df_detail
 
 
-# In[37]:
+# In[57]:
 
 
 def parsingTitle(soup, checkRange):
@@ -188,7 +192,7 @@ def parsingTitle(soup, checkRange):
   
 
 
-# In[38]:
+# In[58]:
 
 
 def request2soup(url, page = None):
@@ -208,7 +212,7 @@ def request2soup(url, page = None):
     return soup
 
 
-# In[39]:
+# In[59]:
 
 
 def main(url, checkRange = 30):
@@ -236,7 +240,7 @@ def main(url, checkRange = 30):
     header.processEnd()
 
 
-# In[40]:
+# In[60]:
 
 
 print(header.TIMELABEL)
@@ -244,7 +248,7 @@ logging.fatal("FINAL_PATH:"+ header.FINAL_PATH)
 url = "https://www.ib.gov.tw/ch/home.jsp?id=37&parentpath=0,3"
 
 
-# In[41]:
+# In[61]:
 
 
 main(url)
