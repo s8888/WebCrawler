@@ -25,7 +25,7 @@ import requests
 import re
 
 
-# In[27]:
+# In[2]:
 
 
 def getResult(findall, STR_NUM):
@@ -36,7 +36,7 @@ def getResult(findall, STR_NUM):
     return result
 
 
-# In[28]:
+# In[3]:
 
 
 def parsingDetail(df):
@@ -96,11 +96,12 @@ def parsingDetail(df):
                             file.write(data)
             
             df_detail = df_detail.append({"ISS_DATE" : result02, 
-                                          "TITL" : title.text.strip(), 
-                                          "ISS_CTNT" : content.text.strip().replace("\n","\\n"),#[2019.01.23]為了匯出CSV有特殊字元能判斷換行,
+                                          "TITL" : title.text.strip(),
+                                          #[2019.01.23]為了匯出CSV有特殊字元能判斷換行
+                                          "ISS_CTNT" : content.text.strip().replace("\n","\\n"),
                                           "ISS_NO" : result01,
                                           "RLT_RGL" : result03,
-                                          "FILES" : " , ".join(str(e.get("title")).replace("(開啟新視窗)", "") 
+                                          "FILES" : ','.join(str(e.get("title")).replace("(開啟新視窗)", "") 
                                                             for e in attachments),
                                           "FOLDER_NM" : date.text + title.text.strip()[:30],
                                           "FILES_NM" : ','.join(tmpFILES_NM)
@@ -114,7 +115,7 @@ def parsingDetail(df):
     return df_detail
 
 
-# In[29]:
+# In[4]:
 
 
 def parsingTitle(soup, checkRange):
@@ -197,7 +198,7 @@ def parsingTitle(soup, checkRange):
   
 
 
-# In[30]:
+# In[5]:
 
 
 def request2soup(url, page = None):
@@ -217,7 +218,7 @@ def request2soup(url, page = None):
     return soup
 
 
-# In[31]:
+# In[6]:
 
 
 def main(url, checkRange = 30):
@@ -246,7 +247,7 @@ def main(url, checkRange = 30):
     header.processEnd()
 
 
-# In[32]:
+# In[7]:
 
 
 print(header.TIMELABEL)
@@ -254,7 +255,7 @@ logging.fatal("FINAL_PATH:"+ header.FINAL_PATH)
 url = "https://www.ib.gov.tw/ch/home.jsp?id=38&parentpath=0,3"
 
 
-# In[33]:
+# In[8]:
 
 
 main(url)
