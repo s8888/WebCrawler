@@ -24,44 +24,31 @@ import os
 import requests
 
 
-# In[8]:
+# In[2]:
 
 
 def parsingDetail(df):
-
-    df_detail = pd.DataFrame(columns = ["ISS_DATE", "TITL", "ISS_CTNT", "ISS_NO", "RLT_RGL", "FILES"])
-
+    df_detail = pd.DataFrame(columns = ["ISS_DATE", "TITL", "ISS_CTNT", "ISS_NO", "RLT_RGL", "FILES",
+                                        "FOLDER_NM", "FILES_NM"])
     for link in df.LNK_URL:
         try:
             soup = request2soup(link)
-
             # 主旨
             title = soup.select("#maincontent h3")[0]
             # 內容
             content = soup.select(".page_content")[0]
             # 附件
-            attachments = soup.select(".acces a") # n 個附件
-            
-            df_detail = df_detail.append({"ISS_DATE" : '', 
-                                          "TITL" : title.text.strip(), 
-                                          "ISS_CTNT" : content.text,
-                                          "ISS_NO" : '',
-                                          "RLT_RGL" : '',
-                                          "FILES" : " , ".join(str(e.get("title")).replace("(開啟新視窗)", "") 
-                                                            for e in attachments)
-                                         }, 
-                                         ignore_index = True)
-           
+            attachments = soup.select(".acces a") # n 個附件            
+            tmpFILES_NM =[]
             # 附件
-            if len(attachments) != 0:
-                
+            if len(attachments) != 0:          
                 # 建立資料夾
-                target = header.FINAL_PATH + "/" + title.text[:30]
-                
+                target = header.FINAL_PATH + "/" + title.text[:30]              
                 # 若目錄不存在, 建立目錄
                 if not os.path.isdir(target):
                     os.mkdir(target)
-                    
+                
+                lastFileName = "" #上一次檔名(因截短後當名相同)    
                 for attach in attachments:
                     fileLink = "https://www.fsc.gov.tw" + attach.get("href")
                     # 下載附件
@@ -71,10 +58,27 @@ def parsingDetail(df):
                     extName = fileName[endLoc:]  # 副檔名
                     fileName = fileName[:endLoc] # 檔名
                     fileName = fileName[:30]     # 截短檔名
+                    if fileName == lastFileName:
+                        fileName = fileName[:30] + str((indext+1))
+                    tmpFILES_NM.append(fileName + extName) #截短後檔名+副檔名
+                    lastFileName = fileName
+                    
                     with open(target + "/" + fileName + extName, "wb") as file:
                         for data in response.iter_content():
                             file.write(data)
-
+            
+            df_detail = df_detail.append({"ISS_DATE" : '', 
+                                          "TITL" : title.text.strip(), 
+                                          #[2019.01.23]為了匯出CSV有特殊字元能判斷換行
+                                          "ISS_CTNT" : content.text.strip().replace("\n","\\n"),
+                                          "ISS_NO" : '',
+                                          "RLT_RGL" : '',
+                                          "FILES" : ','.join(str(e.get("title")).replace("(開啟新視窗)", "") 
+                                                            for e in attachments),
+                                          "FOLDER_NM" : title.text.strip()[:30],
+                                          "FILES_NM" : ','.join(tmpFILES_NM)
+                                         }, 
+                                         ignore_index = True)
         except:
             logging.error("爬取內文失敗")
             logging.error("失敗連結：" + link)
@@ -83,7 +87,7 @@ def parsingDetail(df):
     return df_detail
 
 
-# In[9]:
+# In[3]:
 
 
 def parsingTitle(soup, checkRange):
@@ -166,7 +170,7 @@ def parsingTitle(soup, checkRange):
   
 
 
-# In[10]:
+# In[4]:
 
 
 def request2soup(url, page = None):
@@ -186,7 +190,7 @@ def request2soup(url, page = None):
     return soup
 
 
-# In[11]:
+# In[5]:
 
 
 def main(url, checkRange = 30):
@@ -214,7 +218,7 @@ def main(url, checkRange = 30):
     header.processEnd()
 
 
-# In[12]:
+# In[6]:
 
 
 print(header.TIMELABEL)
@@ -222,7 +226,7 @@ logging.fatal("FINAL_PATH:"+ header.FINAL_PATH)
 url = "https://www.fsc.gov.tw/ch/home.jsp?id=96&parentpath=0,2"
 
 
-# In[13]:
+# In[7]:
 
 
 main(url)
