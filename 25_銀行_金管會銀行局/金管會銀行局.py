@@ -8,7 +8,7 @@ author      : 林德昌
 date        : 2018/10/16
 description : 抓取金管會銀行局每天發布的最新法令函釋
 '''
-# In[34]:
+# In[1]:
 
 
 import requests
@@ -20,41 +20,21 @@ import re
 import datetime
 import traceback # 印log
 import os
-TempPath = "./Temp"  # browser file
-FinalPath = "./Result" # project file
-lastResultPath = "./CrawlList/lastResult.csv"
+FinalPath = header.FINAL_PATH # project file
+lastResultPath = header.LAST_RESULT_PATH
 
 
-# In[35]:
-
-
-def downloadFile(finalPath, title, fileUrls, fileNames): # for download pdf or doc
-    target = finalPath + '/' + title[:30].strip()
-    # 若目錄不存在，建立目錄
-    if not os.path.isdir(target):
-        os.makedirs(target)
-    for file_url, fileName in zip(fileUrls, fileNames):
-        try:
-            response = requests.get(file_url, stream="TRUE")
-            downloadFile = target + '/' + fileName.strip() # 放置資料夾路徑 + 檔名
-            logging.info(downloadFile + '\r\n')
-            with open(downloadFile,'wb') as file:
-                for data in response.iter_content():
-                    file.write(data)
-        except:
-            logging.error("爬取檔案失敗")
-            logging.error("失敗連結：" + file_url)
-            traceback.print_exc()
-
-
-# In[36]:
+# In[2]:
 
 
 def dataProcess_Detail(soup, fileUrlRoot):
     result = dict()
-    result['content'] = [e.text for e in soup.select('.page_content')][0]
-    result['fileNames'] = [e.text for e in soup.select('.acces a')]
-    logging.info(result['fileNames'])
+    result['content'] = [header.spaceAndWrapProcess(e.text) for e in soup.select('.page_content')][0]
+    result['FILES'] = [e.text for e in soup.select('.acces a')]
+    FILES_NM = [os.path.splitext(ele)[0][:30] + os.path.splitext(ele)[1] for ele in result['FILES']]
+    result['FILES_NM'] = header.processDuplicateFiles(FILES_NM)
+    
+    logging.info(result['FILES_NM'])
     result['fileUrls'] = [fileUrlRoot + e.get('href') for e in soup.select('.acces a')]
     str_content = str(soup.select('.page_content')[0])
     result['serno'] = re.findall(r'發文字號.+?\d+.+?', str_content)[0][5:]
@@ -62,29 +42,37 @@ def dataProcess_Detail(soup, fileUrlRoot):
     return result
 
 
-# In[37]:
+# In[3]:
 
 
 def parsingDetail(df, finalPath): 
-    df2 = pd.DataFrame(columns = ["標題", "全文內容", "附件", "發文字號", "發文日期", "相關法條"])
+    df2 = pd.DataFrame(columns = ['ISS_DATE', "TITL", "ISS_CTNT", "ISS_NO", "RLT_RGL", "FILES", 'FOLDER_NM', 'FILES_NM'])
     fileUrlRoot = 'https://www.banking.gov.tw'
     for index, row in df.iterrows():
         try:
-            title = row['標題']
+            title = row['TITL']
             logging.info(title)
-            link = row['內文連結']
+            link = row['LNK_URL']
+            first_layer_date = row['ISS_DATE']
             if link.find('uploaddowndoc') >= 0:
-                downloadFile(finalPath, title, [link], re.findall('\w+.pdf',title))
+                FOLDER_NM = first_layer_date + '_' + title[:30]
+                FILES_NM = re.findall(r'filedisplay=\w+\.pdf', link)[0][len('filedisplay='):]
+                header.downloadFile(FOLDER_NM, finalPath, [link], [FILES_NM])
                 continue
 
             soup = request2soup(link)
             result = dataProcess_Detail(soup, fileUrlRoot)
 
-            fileNames = result['fileNames'] 
-            if len(fileNames) != 0:
-                downloadFile(finalPath, title, result['fileUrls'], fileNames)
-            d = {'標題': title, '全文內容': result['content'], '附件':','.join(fileNames), '發文字號':result['serno'], '發文日期':result['issue_date'],
-                 '相關法條':''}
+            
+            FILES = result['FILES'] 
+            FILES_NM = result['FILES_NM']
+            FOLDER_NM = ''
+            if len(FILES_NM) != 0:
+                first_layer_date = re.sub(r'(/|-|\.)', '-', first_layer_date)
+                FOLDER_NM = first_layer_date + '_' + title[:30] # 有附檔才會有資料夾名稱
+                header.downloadFile(FOLDER_NM, finalPath, result['fileUrls'], FILES_NM)
+            d = {'ISS_DATE':result['issue_date'], 'TITL': title, 'ISS_CTNT': result['content'], 'ISS_NO':result['serno'], 'RLT_RGL':'', 
+                 'FILES':','.join(FILES), 'FOLDER_NM': FOLDER_NM, 'FILES_NM':','.join(FILES_NM)}
             df2= df2.append(d, ignore_index=True)
         except:
             logging.error("爬取內文失敗")
@@ -93,17 +81,7 @@ def parsingDetail(df, finalPath):
     return df2
 
 
-# In[38]:
-
-
-def outputCsv(df, fileName, path):
-    # 若目錄不存在，建立目錄
-    if not os.path.isdir(path):
-        os.mkdir(path)
-    df.to_csv(path + "/" + fileName + ".csv", index = False, encoding = "utf_8_sig")
-
-
-# In[39]:
+# In[4]:
 
 
 def compareTo(strDate, endDate):
@@ -130,7 +108,7 @@ def compareTo(strDate, endDate):
         return -1
 
 
-# In[40]:
+# In[5]:
 
 
 def dataProcess_Title(soup, strDate):
@@ -144,9 +122,9 @@ def dataProcess_Title(soup, strDate):
     end = False
     while True:
         try:
-            if (nowPage > 1):
+            if nowPage > 1:
                 soup = request2soup(url, nowPage)
-            titles = [str(e.get('title').strip()) for e in soup.select('.ptitle1 a')]
+            titles = [e.text.strip() for e in soup.select('.ptitle1 a')]
             if not bool(titles):
                 break
             for index in range(len(titles)):
@@ -182,10 +160,10 @@ def dataProcess_Title(soup, strDate):
         
 
 
-# In[41]:
+# In[6]:
 
 
-def parsingTitle(soup, checkRange):
+def parsingTitle(url, soup, checkRange):
     try:
         # 取得上次爬網結果
         if os.path.isfile(lastResultPath):
@@ -196,33 +174,38 @@ def parsingTitle(soup, checkRange):
         # 爬網日期區間為一個禮拜
         endDate = datetime.date.today()
         strDate = (endDate - datetime.timedelta(days = checkRange)).isoformat()
-        df = pd.DataFrame(columns = ["爬網日期","發文日期", "標題", "內文連結"])
+        df = pd.DataFrame(columns = ['WEB_ADDR',"CRL_DATE","ISS_DATE", "TITL", "LNK_URL"])
         
         # 資料處理
         result = dataProcess_Title(soup, strDate)
         
-        d = {'爬網日期':result['crawl_date'], '發文日期': result['dates'], '標題': result['titles_result'], '內文連結': result['links']}
+        d = {'WEB_ADDR':url, 'CRL_DATE':result['crawl_date'], 'ISS_DATE': result['dates'], 'TITL': result['titles_result'], 'LNK_URL': result['links']}
         df = df.append(pd.DataFrame(data = d))    
         # 若與上次發文日期和標題相同，則跳至下一筆
         if not lastResult.empty:
             for index, row in df.iterrows():
-                if (row['發文日期'] in list(lastResult['發文日期'])) and (row['標題'] in list(lastResult['標題'])):
+                if (row['ISS_DATE'] in list(lastResult['ISS_DATE'])) and (row['TITL'] in list(lastResult['TITL'])):
                     df.drop(index, inplace = True)
                     
         if len(df) == 0:
             logging.critical("%s 至 %s 間無資料更新" %(strDate, endDate))
         else:
             df.index = [i for i in range(df.shape[0])] # reset
-            outputCsv(df, "lastResult", "./CrawlList")
+            lastResult = lastResult.append(df)
+            lastResult.index = [i for i in range(lastResult.shape[0])] # reset
+            lastResult['CRL_DATE'] = pd.to_datetime(lastResult['CRL_DATE'])
+            lastResult = lastResult[lastResult['CRL_DATE'] >= (datetime.date.today() - datetime.timedelta(days = checkRange))]
+            header.outputCsv(lastResult, "lastResult", header.CRAWL_LIST_PATH)
         
     except:
+        header.EXIT_CODE = -1
         logging.error("爬取主旨列表失敗")
         traceback.print_exc()
     return df
     
 
 
-# In[42]:
+# In[7]:
 
 
 def request2soup(url, page = None):
@@ -242,38 +225,34 @@ def request2soup(url, page = None):
     return soup
 
 
-# In[43]:
+# In[8]:
 
 
-def main(url, checkRange = 30):
-    
-    logging.critical("\n")
-    logging.critical("爬網開始......")
-    logging.critical("目標網址：" + url)
-    
-    strTime = datetime.datetime.now()
-    logging.critical("開始時間：" + strTime.strftime("%Y/%m/%d %H:%M:%S"))
+def main(url, checkRange = 45):
+    header.processBegin()
+    header.clearFolder()
     try:
         soup = request2soup(url, 1)
-        df_1 = parsingTitle(soup, checkRange)
+        df_1 = parsingTitle(url, soup, checkRange)
         if len(df_1) == 0:
             return
-        outputCsv(df_1, "第一層結果", FinalPath)
+        header.outputCsv(df_1, "第一層結果", FinalPath)
 
         df_2 = parsingDetail(df_1, FinalPath)
-        outputCsv(df_2, "第二層結果", FinalPath)
+        header.outputCsv(df_2, "第二層結果", FinalPath)
+        header.RESULT_COUNT = len(df_1)
+        header.zipFile()
+        header.createInfoFile()
+        header.createOKFile()
     except:
         logging.error("執行爬網作業失敗")
+        header.EXIT_CODE = -1
         traceback.print_exc()
         
-    endTime = datetime.datetime.now()
-    logging.critical("結束時間：" + endTime.strftime("%Y/%m/%d %H:%M:%S"))
-    logging.critical("執行時間：" + str((endTime - strTime).seconds) + " 秒")
-    logging.critical("輸出筆數：" + str(len(df_1)) + " 筆")
-    logging.critical("爬網結束......")
+    header.processEnd()
 
 
-# In[44]:
+# In[9]:
 
 
 if __name__ == "__main__":
