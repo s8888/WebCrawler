@@ -22,6 +22,7 @@ import traceback # 印log
 import os
 FinalPath = header.FINAL_PATH # project file
 lastResultPath = header.LAST_RESULT_PATH
+lastResult = pd.DataFrame()
 
 
 # In[2]:
@@ -63,19 +64,19 @@ def parsingDetail(df, finalPath):
             soup = request2soup(link)
             result = dataProcess_Detail(soup, fileUrlRoot)
 
-            
             FILES = result['FILES'] 
             FILES_NM = result['FILES_NM']
             FOLDER_NM = ''
             if len(FILES_NM) != 0:
                 first_layer_date = re.sub(r'(/|-|\.)', '-', first_layer_date)
-                FOLDER_NM = first_layer_date + '_' + title[:30] # 有附檔才會有資料夾名稱
+                FOLDER_NM = first_layer_date + '_' + title[:30].strip() + '_' + str(index) # 有附檔才會有資料夾名稱
                 header.downloadFile(FOLDER_NM, finalPath, result['fileUrls'], FILES_NM)
             d = {'ISS_DATE':result['issue_date'], 'TITL': title, 'ISS_CTNT': result['content'], 'ISS_NO':result['serno'], 'RLT_RGL':'', 
                  'FILES':','.join(FILES), 'FOLDER_NM': FOLDER_NM, 'FILES_NM':','.join(FILES_NM)}
             df2= df2.append(d, ignore_index=True)
         except:
-            logging.error("爬取內文失敗")
+            header.EXIT_CODE = -1   # 2019/02/01 爬取內文發生錯誤則重爬
+            logging.error("爬取內文失敗")  
             logging.error("失敗連結：" + link)
             traceback.print_exc()
     return df2
@@ -140,12 +141,14 @@ def dataProcess_Title(soup, strDate):
                     dates.append(date)
                     links.append(link)
                 except:
+                    header.EXIT_CODE = -1   # 2019/02/01 爬取任一筆主旨發生錯誤則重爬
                     logging.error("爬取第 %s 頁第 %s 筆資料發生錯誤" %(nowPage, index + 1))
                     traceback.print_exc()
             if end == True:
                 break
             nowPage += 1
         except:
+            header.EXIT_CODE = -1   # 2019/02/01 爬取任一頁主旨發生錯誤則重爬
             logging.error("爬取第 %s 頁主旨發生錯誤" %(nowPage))
             traceback.print_exc()
         
@@ -168,8 +171,6 @@ def parsingTitle(url, soup, checkRange):
         # 取得上次爬網結果
         if os.path.isfile(lastResultPath):
             lastResult = pd.read_csv(lastResultPath)
-        else:
-            lastResult = pd.DataFrame()
         
         # 爬網日期區間為一個禮拜
         endDate = datetime.date.today()
@@ -190,12 +191,8 @@ def parsingTitle(url, soup, checkRange):
         if len(df) == 0:
             logging.critical("%s 至 %s 間無資料更新" %(strDate, endDate))
         else:
+            # 2019-02-01將原程式包入header的outputLastResult方法
             df.index = [i for i in range(df.shape[0])] # reset
-            lastResult = lastResult.append(df)
-            lastResult.index = [i for i in range(lastResult.shape[0])] # reset
-            lastResult['CRL_DATE'] = pd.to_datetime(lastResult['CRL_DATE'])
-            lastResult = lastResult[lastResult['CRL_DATE'] >= (datetime.date.today() - datetime.timedelta(days = checkRange))]
-            header.outputCsv(lastResult, "lastResult", header.CRAWL_LIST_PATH)
         
     except:
         header.EXIT_CODE = -1
@@ -228,7 +225,7 @@ def request2soup(url, page = None):
 # In[8]:
 
 
-def main(url, checkRange = 45):
+def main(url, checkRange = 5):
     header.processBegin()
     header.clearFolder()
     try:
@@ -244,6 +241,7 @@ def main(url, checkRange = 45):
         header.zipFile()
         header.createInfoFile()
         header.createOKFile()
+        header.outputLastResult(df_1, lastResult, checkRange)   # 2019-02-01新增產出lastResult方法
     except:
         logging.error("執行爬網作業失敗")
         header.EXIT_CODE = -1

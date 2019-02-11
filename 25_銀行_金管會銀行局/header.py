@@ -5,6 +5,7 @@ import datetime
 import shutil
 import re
 import requests
+import pandas as pd
 
 #private variable
 _path = sys.argv[0]
@@ -88,10 +89,11 @@ def zipFile(fileName = PROJECT_TIMELABEL, targetPath = FINAL_PATH , zipFolder = 
     shutil.move(os.path.join(TEMP_PATH,fileName+'.zip'),os.path.join(targetPath,fileName+'.zip') )
 
 # ok file for process execute successfully    
-def createOKFile():    
-    filename = os.path.join(FINAL_PATH, PROJECT_TIMELABEL+'.ok') 
-    logging.debug('createOKFile:'+filename)
-    open(filename,'a')    
+def createOKFile():
+    if EXIT_CODE == 0:    # 若EXIT_CODE為0，亦即爬網成功，才產生ok檔，否則不產出ok檔
+        filename = os.path.join(FINAL_PATH, PROJECT_TIMELABEL+'.ok') 
+        logging.debug('createOKFile:'+filename)
+        open(filename,'a')    
 
 # ok file for process execute successfully    
 def createInfoFile():    
@@ -115,11 +117,6 @@ def downloadFile(FOLDER_NM, finalPath, fileUrls, fileNames): # for download pdf 
     # 若目錄不存在，建立目錄
     if not os.path.isdir(target):
         os.makedirs(target)
-    else:
-        if len(target.split('_')) == 3:
-            FILE_INDEX = int(target.split('_')[2]) + 1
-        target = target + '_' + str(FILE_INDEX)
-        FILE_INDEX += 1
     
     for file_url, fileName in zip(fileUrls, fileNames):
         try:
@@ -130,6 +127,7 @@ def downloadFile(FOLDER_NM, finalPath, fileUrls, fileNames): # for download pdf 
                 for data in response.iter_content():
                     file.write(data)
         except:
+            header.EXIT_CODE = -1   # 2019/02/01 爬取檔案發生錯誤則重爬
             logging.error("爬取檔案失敗")
             logging.error("失敗連結：" + file_url)
             traceback.print_exc()
@@ -140,13 +138,19 @@ def spaceAndWrapProcess(string):
 
 # deal with duplicate files
 def processDuplicateFiles(FILES_NM):
-    c_fileNames = []
     index = 0
     for ele in FILES_NM:
-        counts = c_fileNames.count(ele)
-        if counts > 0:
-            fileTuple = os.path.splitext(ele)
-            FILES_NM[index] = fileTuple[0] + '_' + str(counts) + fileTuple[1]
+        fileTuple = os.path.splitext(ele)
+        FILES_NM[index] = fileTuple[0].strip() + '_' + str(index) + fileTuple[1]
         index += 1
-        c_fileNames.append(ele)
     return FILES_NM
+
+# 2019/02/01 if EXIT_CODE == 0, then output lastResult
+def outputLastResult(df_1, lastResult, checkRange):
+    if EXIT_CODE == 0:
+         # 將新爬到的資料和lastResult合併
+        lastResult = pd.concat([df_1, lastResult], ignore_index = True)
+        lastResult = lastResult[pd.to_datetime(lastResult['CRL_DATE']) >= (datetime.date.today() - datetime.timedelta(days=checkRange))]
+        logging.info(LAST_RESULT_PATH)
+        outputCsv(lastResult, "lastResult", CRAWL_LIST_PATH)
+        
