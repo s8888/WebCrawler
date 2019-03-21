@@ -29,8 +29,6 @@ RESULT_COUNT = 0
 FILE_INDEX = 1
 lastResult = pd.DataFrame()
 
-if not os.path.isdir(LOG_PATH):
-    os.makedirs(LOG_PATH)
 # log setting
 logging.basicConfig(level=logging.DEBUG, #DEBUG, INFO, WARNING, ERROR, CRITICAL
                     filename= LOG_PATH + '/'+PROJECT_TIMELABEL+ '_log.txt',
