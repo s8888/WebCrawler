@@ -24,9 +24,13 @@ LAST_RESULT_PATH = CRAWL_LIST_PATH
 EXIT_CODE = 0  
 RESULT_COUNT = 0
 
+# 20190326 將 log 檔案名稱設為全域變數
+LOG_FILE_NAME = "log.txt"
+LOG_FILE_PATH = os.path.join(LOG_PATH, LOG_FILE_NAME)
+
 # log setting
 logging.basicConfig(level=logging.DEBUG, #DEBUG, INFO, WARNING, ERROR, CRITICAL
-                    filename= LOG_PATH + '/log.txt',
+                    filename= LOG_FILE_PATH,  # 20190326 將 log 檔案名稱設為全域變數
                     filemode='w',
                     format='%(asctime)s - %(levelname)8s - %(name)s[line:%(lineno)d] : %(message)s')
 
@@ -51,6 +55,7 @@ def outputCsv(df, fileName, path= FINAL_PATH, encoding = "utf_8_sig", index = Fa
     # check file exist
     if not os.path.isdir(path):
         os.mkdir(path)
+
     # 20190322 新增參數 quoting=csv.QUOTE_NONNUMERIC 以前後雙引號(")包住字串欄位
     df.to_csv( os.path.join(path,fileName + ".csv"), index=index, encoding=encoding, quoting=csv.QUOTE_NONNUMERIC)
     
@@ -75,10 +80,16 @@ def removeFile(filePath):
 #------------------ customize -------------------------------------------            
             
 # zipfile 
-def zipFile(fileName = PROJECT+'_'+TIMELABEL, targetPath = FINAL_PATH , zipFolder = FINAL_PATH):
+def zipFile(fileName=PROJECT+'_'+TIMELABEL, targetPath=FINAL_PATH , zipFolder=FINAL_PATH, zipWithLog=True):
     logging.debug('zip fileName:'+fileName)
     logging.debug('zip targetPath:'+targetPath)
     logging.debug('zip zipFolder:'+zipFolder)
+
+    # 20190326 檢核並複製 LOG_PATH/log.txt 至 FINAL_PATH 下
+    if zipWithLog:
+        if os.path.isfile(LOG_FILE_PATH):
+            shutil.copyfile(LOG_FILE_PATH, os.path.join(targetPath, LOG_FILE_NAME))
+
     #TODO consider merge fileName, targetPath
     shutil.make_archive(os.path.join(TEMP_PATH,fileName),'zip',zipFolder)
     shutil.move(os.path.join(TEMP_PATH,fileName+'.zip'),os.path.join(targetPath,fileName+'.zip') )
