@@ -80,12 +80,11 @@ def getBlockInfo(itemSoup, patternKey, patternValue):
 # In[5]:
 
 def getItemInfo(itemUrl):
-    
+
     itemSoup = request2soup(itemUrl)
     addrInfo = getBlockInfo(itemSoup, "span.info-addr-key", "span.info-addr-value")
     floorInfo = getBlockInfo(itemSoup, "div.info-floor-value", "div.info-floor-key")
-    
-    # 編號, 標題, 有效期, 總價, 基地面積, 單價, 土地類別, 現況, 適合用途, 地址, 仲介, 經紀業, 電話, 屋況特色, 待售物件連結
+
     rtnMap = {}
     rtnMap["編號"] = selectValueByPattern(itemSoup, "span.breadList-last", 0)
     rtnMap["標題"] = selectValueByPattern(itemSoup, "h1.detail-title-content", 0)
@@ -105,13 +104,13 @@ def getItemInfo(itemUrl):
     rtnMap["電話"] = selectValueByPattern(itemSoup, "span.info-host-word", 0)
     rtnMap["屋況特色"] = selectValueByPattern(itemSoup, "div.detail-feature-text", 0)
     rtnMap["待售物件連結"] = itemUrl
-    
+
     return rtnMap
 
 # In[6]:
 
 def parsingDetail(standbyDataFrame):
-    
+
     itemUrlList = list(standbyDataFrame["link"])
 
     detailDataFrame = pd.DataFrame(columns=["編號", "標題", "有效期", "總價", "金額單位", "基地面積(坪)", "單價(萬/坪)",
@@ -168,7 +167,7 @@ def parsingTitle(reqMap):
                 try:
                     # 逐頁處理，每頁30筆
                     for itemNo in range(0, totalNumber, 30):
-                        
+
                         # 設定查詢頁數
                         queryParams["firstRow"] = itemNo
 
