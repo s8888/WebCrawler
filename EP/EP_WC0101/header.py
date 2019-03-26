@@ -80,7 +80,7 @@ def removeFile(filePath):
 #------------------ customize -------------------------------------------            
             
 # zipfile 
-def zipFile(fileName = PROJECT+'_'+TIMELABEL, targetPath = FINAL_PATH , zipFolder = FINAL_PATH):
+def zipFile(fileName=PROJECT+'_'+TIMELABEL, targetPath=FINAL_PATH , zipFolder=FINAL_PATH, zipWithLog=True):
     logging.debug('zip fileName:'+fileName)
     logging.debug('zip targetPath:'+targetPath)
     logging.debug('zip zipFolder:'+zipFolder)
