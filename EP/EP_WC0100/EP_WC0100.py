@@ -124,7 +124,7 @@ def parsingDetail(standbyDataFrame):
         except:
             # 移除未成功的連結
             standbyDataFrame = standbyDataFrame[standbyDataFrame["link"] != itemUrl]
-            setErrorMessage("爬取商品內文失敗，失敗連結：" + itemUrl)
+            setErrorMessage("爬取商品內文失敗，失敗連結：" + itemUrl, setEXIT_CODE=False)
     
     return standbyDataFrame, detailDataFrame
 
