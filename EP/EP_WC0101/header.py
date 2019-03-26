@@ -12,17 +12,9 @@ _strTime = datetime.datetime.now()
 
 
 #public variable for common use
-IS_LOCAL = _tail == 'ipykernel_launcher.py' # ipynb vs py
-
-#TODO 請自訂路徑
-# PATH = "" if IS_LOCAL else os.path.dirname(_path) + "/"
-PATH = ""
-
-#TODO 請自訂專案名稱
+IS_LOCAL = _tail == 'ipykernel_launcher.py' # ipynb vs py 
+PATH = "" if IS_LOCAL else os.path.dirname(_path) +"/"  
 PROJECT = "" if IS_LOCAL else os.path.splitext(os.path.basename(sys.argv[0]))[0]
-#PROJECT = "tmp_proj_name"
-
-
 TIMELABEL = sys.argv[1] if ( not IS_LOCAL and len(sys.argv)>1) else _strTime.strftime("%Y%m%d%H%M%S") 
 LOG_PATH = PATH +"./Log"
 TEMP_PATH = PATH +"./Temp"  # browser file
@@ -38,7 +30,7 @@ LOG_FILE_PATH = os.path.join(LOG_PATH, LOG_FILE_NAME)
 
 # log setting
 logging.basicConfig(level=logging.DEBUG, #DEBUG, INFO, WARNING, ERROR, CRITICAL
-                    filename= LOG_FILE_PATH, # 20190326 將 log 檔案名稱設為全域變數
+                    filename= LOG_FILE_PATH,  # 20190326 將 log 檔案名稱設為全域變數
                     filemode='w',
                     format='%(asctime)s - %(levelname)8s - %(name)s[line:%(lineno)d] : %(message)s')
 
@@ -59,10 +51,12 @@ def processEnd():
     logging.critical("爬網結束......\n")
 
 # csv output    
-def outputCsv(df, fileName, path=FINAL_PATH, encoding="utf_8_sig", index=False):
+def outputCsv(df, fileName, path= FINAL_PATH, encoding = "utf_8_sig", index = False):
     # check file exist
     if not os.path.isdir(path):
         os.mkdir(path)
+
+    # 20190322 新增參數 quoting=csv.QUOTE_NONNUMERIC 以前後雙引號(")包住字串欄位
     df.to_csv( os.path.join(path,fileName + ".csv"), index=index, encoding=encoding, quoting=csv.QUOTE_NONNUMERIC)
     
     
@@ -86,7 +80,7 @@ def removeFile(filePath):
 #------------------ customize -------------------------------------------            
             
 # zipfile 
-def zipFile(fileName=PROJECT+'_'+TIMELABEL, targetPath=FINAL_PATH , zipFolder=FINAL_PATH, zipWithLog=True):
+def zipFile(fileName = PROJECT+'_'+TIMELABEL, targetPath = FINAL_PATH , zipFolder = FINAL_PATH):
     logging.debug('zip fileName:'+fileName)
     logging.debug('zip targetPath:'+targetPath)
     logging.debug('zip zipFolder:'+zipFolder)
