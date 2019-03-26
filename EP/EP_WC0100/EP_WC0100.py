@@ -256,7 +256,7 @@ def main():
         else:
             finishDataFrame, detailDataFrame = parsingDetail(standbyDataFrame)
 
-            header.outputCsv(detailDataFrame, "Result")
+            header.outputCsv(detailDataFrame, header.PROJECT)
             header.RESULT_COUNT = len(detailDataFrame)
 
             # 更新 crawlHistory 檔案
