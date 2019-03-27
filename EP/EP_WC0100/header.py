@@ -80,13 +80,13 @@ def removeFile(filePath):
 #------------------ customize -------------------------------------------            
             
 # zipfile 
-def zipFile(fileName=PROJECT+'_'+TIMELABEL, targetPath=FINAL_PATH , zipFolder=FINAL_PATH, zipWithLog=True):
+def zipFile(fileName=PROJECT+'_'+TIMELABEL, targetPath=FINAL_PATH , zipFolder=FINAL_PATH, zipResultWithLog=True):
     logging.debug('zip fileName:'+fileName)
     logging.debug('zip targetPath:'+targetPath)
     logging.debug('zip zipFolder:'+zipFolder)
 
     # 20190326 檢核並複製 LOG_PATH/log.txt 至 FINAL_PATH 下
-    if zipWithLog:
+    if zipResultWithLog:
         if os.path.isfile(LOG_FILE_PATH):
             shutil.copyfile(LOG_FILE_PATH, os.path.join(targetPath, LOG_FILE_NAME))
 
