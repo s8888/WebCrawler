@@ -273,6 +273,7 @@ def main():
     except:
         setErrorMessage("執行爬網作業失敗")
         header.createInfoFile()
+        header.zipFile(zipFolder=header.LOG_PATH, zipResultWithLog=False)
 
     header.processEnd()
 
