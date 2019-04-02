@@ -10,7 +10,9 @@ Author      : 張至偉
 Update Date : 2019.03.22
 
 [20190402] 問題單:20190328131036
-調整輸出檔案的欄位順序
+1. 調整輸出檔案的欄位順序
+2. 新增查詢縣市
+3. 新增"坪數"的檢核條件
 '''
 
 # In[1]:
@@ -33,14 +35,18 @@ WEB_URL = "https://business.591.com.tw"
 
 # In[2]:
 
-def removeWord(inputString, removePatterns):
+def getBlockInfo(itemSoup, patternKey, patternValue):
 
-    rtnString = inputString
-    for pString in removePatterns:
-        pattern = re.compile("(\s*)" + pString + "(\s*)")
-        rtnString = pattern.sub('', rtnString)
+    # 使用 CSS 選擇器，選取指定區塊
+    # 根據區塊處理，並回傳 dict 的查詢格式 {"標題":"內容"}
+    rtnMap = {}
+    keyList = itemSoup.select(patternKey)
+    valueList = itemSoup.select(patternValue)
 
-    return rtnString
+    for i, key in enumerate(keyList):
+        rtnMap[key.text] = valueList[i].text
+
+    return rtnMap
 
 # In[3]:
 
@@ -67,18 +73,14 @@ def selectValueByPattern(soup, patternStr, index, removeChild=False):
 
 # In[4]:
 
-def getBlockInfo(itemSoup, patternKey, patternValue):
+def removeWord(inputString, removePatterns):
 
-    # 使用 CSS 選擇器，選取指定區塊
-    # 根據區塊處理，並回傳 dict 的查詢格式 {"標題":"內容"}
-    rtnMap = {}
-    keyList = itemSoup.select(patternKey)
-    valueList = itemSoup.select(patternValue)
+    rtnString = inputString
+    for pString in removePatterns:
+        pattern = re.compile("(\s*)" + pString + "(\s*)")
+        rtnString = pattern.sub('', rtnString)
 
-    for i, key in enumerate(keyList):
-        rtnMap[key.text] = valueList[i].text
-
-    return rtnMap
+    return rtnString
 
 # In[5]:
 
@@ -87,6 +89,11 @@ def getItemInfo(itemUrl):
     itemSoup = request2soup(itemUrl)
     addrInfo = getBlockInfo(itemSoup, "span.info-addr-key", "span.info-addr-value")
     floorInfo = getBlockInfo(itemSoup, "div.info-floor-value", "div.info-floor-key")
+
+    # [20190402] 檢核坪數是否大於 300 坪
+    floorArea = removeWord(floorInfo.get("基地面積", "None"), ["坪"])
+    if float(floorArea) < 300:
+        return None
 
     rtnMap = {}
 
@@ -97,7 +104,7 @@ def getItemInfo(itemUrl):
     rtnMap["土地類別"] = floorInfo.get("土地類別", "None")
     rtnMap["現況"] = addrInfo.get("現況", "None")
     rtnMap["總價(萬元)"] = selectValueByPattern(itemSoup, "span.info-price-num", 0, removeChild=True)
-    rtnMap["基地面積(坪)"] = removeWord(floorInfo.get("基地面積", "None"), ["坪"])
+    rtnMap["基地面積(坪)"] = floorArea
     rtnMap["單價(萬/坪)"] = removeWord(selectValueByPattern(itemSoup, "div.info-price-per", 0), ["單價：", "萬/坪房貸試算"])
     rtnMap["標題"] = selectValueByPattern(itemSoup, "h1.detail-title-content", 0)
     rtnMap["待售物件連結"] = itemUrl
@@ -238,7 +245,13 @@ def main():
 
     try:
         reqMap = {
-            "REGION_IDs": {'1':"台北", '3':"新北", '4':"新竹", '6':"桃園"},
+            # [20190402] 新增查詢的縣市
+            "REGION_IDs": {
+                "1" : "台北市", "2" : "基隆市", "3" : "新北市", "4" : "新竹市", "5" : "新竹縣", "6" : "桃園市",
+                "7" : "苗栗縣", "8" : "台中市", "10": "彰化縣", "11": "南投縣", "12": "嘉義市", "13": "嘉義縣",
+                "14": "雲林縣", "15": "台南市", "17": "高雄市", "19": "屏東縣", "21": "宜蘭縣", "22": "台東縣",
+                "23": "花蓮縣", "24": "澎湖縣", "25": "金門縣", "26": "連江縣"
+            },
             "QUERY_TYPEs": {'1':"住宅用地", '2':"商業用地", '3':"工業用地"},
             "CONDITIONS": {
                 "is_new_list": '1',
