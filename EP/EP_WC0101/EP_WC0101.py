@@ -10,8 +10,10 @@ Author      : 張至偉
 Update Date : 2019.03.22
 
 [20190402] 問題單:20190328131036
-調整輸出檔案的欄位順序
+1. 調整輸出檔案的欄位順序
+2. 新增查詢縣市
 '''
+
 # In[1]:
 
 import header
@@ -47,7 +49,7 @@ def getBlockInfo(itemSoup, patternKey, patternValue):
 
 # In[3]:
 
-def selectValueByPattern(soup, patternStr, index, removeChild=False, strSlice=None):
+def selectValueByPattern(soup, patternStr, index, removeChild=False):
 
     selectedList = soup.select(patternStr)
 
@@ -243,7 +245,13 @@ def main():
 
     try:
         reqMap = {
-            "REGION_IDs": {'1':"台北", '3':"新北", '4':"新竹", '6':"桃園"},
+            # [20190402] 新增查詢的縣市
+            "REGION_IDs": {
+                "1" : "台北市", "2" : "基隆市", "3" : "新北市", "4" : "新竹市", "5" : "新竹縣", "6" : "桃園市",
+                "7" : "苗栗縣", "8" : "台中市", "10": "彰化縣", "11": "南投縣", "12": "嘉義市", "13": "嘉義縣",
+                "14": "雲林縣", "15": "台南市", "17": "高雄市", "19": "屏東縣", "21": "宜蘭縣", "22": "台東縣",
+                "23": "花蓮縣", "24": "澎湖縣", "25": "金門縣", "26": "連江縣"
+            },
             "CONDITIONS": {
                 "is_new_list": '1',
                 "type": '2',
