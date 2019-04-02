@@ -8,6 +8,9 @@ Main Website: https://business.591.com.tw
 Description : RPA爬網需求：定期蒐尋仲介網站出售案件
 Author      : 張至偉
 Update Date : 2019.03.22
+
+[20190402] 問題單:20190328131036
+調整輸出檔案的欄位順序
 '''
 
 # In[1]:
@@ -86,24 +89,25 @@ def getItemInfo(itemUrl):
     floorInfo = getBlockInfo(itemSoup, "div.info-floor-value", "div.info-floor-key")
 
     rtnMap = {}
-    rtnMap["編號"] = selectValueByPattern(itemSoup, "span.breadList-last", 0)
-    rtnMap["標題"] = selectValueByPattern(itemSoup, "h1.detail-title-content", 0)
-    rtnMap["有效期"] = removeWord(selectValueByPattern(itemSoup, "span.detail-info-span.pull-right", 0), ["有效期："])
-    rtnMap["總價"] = selectValueByPattern(itemSoup, "span.info-price-num", 0, removeChild=True)
-    rtnMap["金額單位"] = selectValueByPattern(itemSoup, "span.info-price-unit", 0)
-    rtnMap["基地面積(坪)"] = removeWord(floorInfo.get("基地面積", "None"), ["坪"])
-    rtnMap["單價(萬/坪)"] = removeWord(selectValueByPattern(itemSoup, "div.info-price-per", 0), ["單價：", "萬/坪房貸試算"])
-    rtnMap["土地類別"] = floorInfo.get("土地類別", "None")
-    rtnMap["現況"] = addrInfo.get("現況", "None")
-    rtnMap["適合用途"] = addrInfo.get("適合用途", "None")
+
+    # [20190402] 調整輸出檔案的欄位順序
     rtnMap["縣市"] = selectValueByPattern(itemSoup, "div.breadList > a", 2)
     rtnMap["區域"] = selectValueByPattern(itemSoup, "div.breadList > a", 3)
     rtnMap["地址"] = addrInfo.get("地址", "None")
+    rtnMap["土地類別"] = floorInfo.get("土地類別", "None")
+    rtnMap["現況"] = addrInfo.get("現況", "None")
+    rtnMap["總價(萬元)"] = selectValueByPattern(itemSoup, "span.info-price-num", 0, removeChild=True)
+    rtnMap["基地面積(坪)"] = removeWord(floorInfo.get("基地面積", "None"), ["坪"])
+    rtnMap["單價(萬/坪)"] = removeWord(selectValueByPattern(itemSoup, "div.info-price-per", 0), ["單價：", "萬/坪房貸試算"])
+    rtnMap["標題"] = selectValueByPattern(itemSoup, "h1.detail-title-content", 0)
+    rtnMap["待售物件連結"] = itemUrl
+    rtnMap["適合用途"] = addrInfo.get("適合用途", "None")
+    rtnMap["有效期"] = removeWord(selectValueByPattern(itemSoup, "span.detail-info-span.pull-right", 0), ["有效期："])
     rtnMap["仲介"] = selectValueByPattern(itemSoup, "div.info-host-name > span.info-span-name", 0)
     rtnMap["經紀業"] = selectValueByPattern(itemSoup, "div.info-host-detail > span", 0)
     rtnMap["電話"] = selectValueByPattern(itemSoup, "span.info-host-word", 0)
     rtnMap["屋況特色"] = selectValueByPattern(itemSoup, "div.detail-feature-text", 0)
-    rtnMap["待售物件連結"] = itemUrl
+    rtnMap["編號"] = selectValueByPattern(itemSoup, "span.breadList-last", 0)
 
     return rtnMap
 
@@ -113,8 +117,9 @@ def parsingDetail(standbyDataFrame):
 
     itemUrlList = list(standbyDataFrame["link"])
 
-    detailDataFrame = pd.DataFrame(columns=["編號", "標題", "有效期", "總價", "金額單位", "基地面積(坪)", "單價(萬/坪)",
-        "土地類別", "現況", "適合用途", "縣市", "區域", "地址", "仲介", "經紀業", "電話", "屋況特色", "待售物件連結"])
+    # [20190402] 調整輸出檔案的欄位順序
+    detailDataFrame = pd.DataFrame(columns=["縣市", "區域", "地址", "土地類別", "現況", "總價(萬元)", "基地面積(坪)", "單價(萬/坪)",
+    "標題", "待售物件連結","適合用途", "有效期", "仲介", "經紀業", "電話", "屋況特色", "編號"])
 
     for itemUrl in itemUrlList:
         try:
