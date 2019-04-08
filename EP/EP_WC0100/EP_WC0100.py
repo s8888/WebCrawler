@@ -91,8 +91,9 @@ def getItemInfo(itemUrl):
     floorInfo = getBlockInfo(itemSoup, "div.info-floor-value", "div.info-floor-key")
 
     # [20190402] 檢核坪數是否大於 300 坪
+    # [20190408] 檢核變數是否為 "None"
     floorArea = removeWord(floorInfo.get("基地面積", "None"), ["坪"])
-    if float(floorArea) < 300:
+    if floorArea=="None" or float(floorArea) < 300:
         return None
 
     rtnMap = {}
