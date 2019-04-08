@@ -98,6 +98,7 @@ def getItemInfo(itemUrl):
     rtnMap = {}
 
     # [20190402] 調整輸出檔案的欄位順序
+    # [20190408] 移除重複的欄位
     rtnMap["縣市"] = selectValueByPattern(itemSoup, "div.breadList > a", 2)
     rtnMap["區域"] = selectValueByPattern(itemSoup, "div.breadList > a", 3)
     rtnMap["地址"] = addrInfo.get("地址", "None")
@@ -110,7 +111,6 @@ def getItemInfo(itemUrl):
     rtnMap["待售物件連結"] = itemUrl
     rtnMap["樓層"] = floorInfo.get("樓層", "None")
     rtnMap["屋齡"] = floorInfo.get("屋齡", "None")
-    rtnMap["現況"] = detailInfo.get("現況", "None")
     rtnMap["帶租約"] = detailInfo.get("帶租約", "None")
     rtnMap["法定用途"] = detailInfo.get("法定用途", "None")
     rtnMap["車位"] = detailInfo.get("車位", "None")
@@ -130,8 +130,9 @@ def parsingDetail(standbyDataFrame):
     itemUrlList = list(standbyDataFrame["link"])
 
     # [20190402] 調整輸出檔案的欄位順序
+    # [20190408] 移除重複的欄位
     detailDataFrame = pd.DataFrame(columns=["縣市", "區域", "地址", "型態", "現況", "總價(萬元)", "權狀坪數(坪)", "單價(萬/坪)",
-    "標題", "待售物件連結", "樓層", "屋齡", "現況", "帶租約", "法定用途", "車位", "有效期", "仲介", "經紀業", "電話", "屋況特色", "編號"])
+    "標題", "待售物件連結", "樓層", "屋齡", "帶租約", "法定用途", "車位", "有效期", "仲介", "經紀業", "電話", "屋況特色", "編號"])
 
     for itemUrl in itemUrlList:
         try:
