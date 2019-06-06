@@ -93,7 +93,7 @@ def getItemInfo(itemUrl):
     # 檢核坪數是否大於 1000 坪
     # [20190408] 檢核變數是否為 "None"
     floorArea = removeWord(floorInfo.get("權狀坪數", "None"), ["坪", "\(含車位\)"])
-    if floorArea=="None" float(floorArea) < 1000:
+    if floorArea=="None" or float(floorArea) < 1000:
         return None
 
     rtnMap = {}
