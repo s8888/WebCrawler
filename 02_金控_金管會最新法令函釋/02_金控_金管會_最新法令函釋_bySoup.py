@@ -23,6 +23,7 @@ from bs4 import BeautifulSoup
 import os
 import requests
 # import docx # 需 istall python-docx
+import csv
 
 
 # In[2]:
@@ -172,11 +173,12 @@ def parsingDetail(df, FinalPath):
 # In[33]:
 
 
-def outputCsv(df, fileName, path):
+def outputCsv(df, fileName, path, index=False, encoding="utf_8_sig"):
     # 若目錄不存在, 建立目錄
     if not os.path.isdir(path):
         os.mkdir(path)
-    df.to_csv(path + fileName + ".csv", index = False, encoding = "utf_8_sig")
+    # 20190916 新增參數 quoting=csv.QUOTE_NONNUMERIC 以前後雙引號(")包住字串欄位
+    df.to_csv(os.path.join(path, fileName+".csv"), index=index, encoding=encoding, quoting=csv.QUOTE_NONNUMERIC)
 
 
 # In[34]:
