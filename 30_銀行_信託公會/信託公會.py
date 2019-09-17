@@ -20,6 +20,7 @@ import re
 import datetime
 import traceback # 印log
 import os
+import csv
 TempPath = "./Temp"  # browser file
 FinalPath = "./Result" # project file
 lastResultPath = "./CrawlList/lastResult.csv"
@@ -97,11 +98,12 @@ def parsingDetail(df, finalPath):
 # In[66]:
 
 
-def outputCsv(df, fileName, path):
+def outputCsv(df, fileName, path, index=False, encoding="utf_8_sig"):
     # 若目錄不存在，建立目錄
     if not os.path.isdir(path):
         os.mkdir(path)
-    df.to_csv(path + "/" + fileName + ".csv", index = False, encoding = "utf_8_sig")
+    # 20190916 新增參數 quoting=csv.QUOTE_NONNUMERIC 以前後雙引號(")包住字串欄位
+    df.to_csv(os.path.join(path, fileName+".csv"), index=index, encoding=encoding, quoting=csv.QUOTE_NONNUMERIC)
 
 
 # In[67]:
