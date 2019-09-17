@@ -6,6 +6,7 @@ import shutil
 import re
 import requests
 import pandas as pd
+import csv
 
 #private variable
 _path = sys.argv[0]
@@ -55,7 +56,8 @@ def outputCsv(df, fileName, path= FINAL_PATH, encoding = "utf_8_sig", index = Fa
     # check file exist
     if not os.path.isdir(path):
         os.mkdir(path)
-    df.to_csv( os.path.join(path,fileName + ".csv") , index = index, encoding = encoding)
+    # 20190916 新增參數 quoting=csv.QUOTE_NONNUMERIC 以前後雙引號(")包住字串欄位
+    df.to_csv( os.path.join(path,fileName + ".csv"), index=index, encoding=encoding, quoting=csv.QUOTE_NONNUMERIC)
     
     
 # clean folder    
