@@ -6,6 +6,7 @@ import shutil
 import re
 import requests
 import pandas as pd
+import csv #20190918
 
 #private variable
 _path = sys.argv[0]
@@ -54,13 +55,14 @@ def processEnd():
     logging.critical("爬網結束......\n")
 
 # csv output    
-def outputCsv(df, fileName, path= FINAL_PATH, encoding = "utf_8_sig", index = False):
+def outputCsv(df, fileName, path=FINAL_PATH, encoding="utf_8_sig", index=False):
     # check file exist
     if not os.path.isdir(path):
         os.mkdir(path)
-    df.to_csv( os.path.join(path,fileName + ".csv") , index = index, encoding = encoding)
-    
-    
+    # 20190918 新增參數 quoting=csv.QUOTE_NONNUMERIC 以前後雙引號(")包住字串欄位
+    df.to_csv(os.path.join(path, fileName+".csv"), index=index, encoding=encoding, quoting=csv.QUOTE_NONNUMERIC)
+
+
 # clean folder    
 def clearFolder():
     removeFile(TEMP_PATH)
